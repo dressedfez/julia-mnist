@@ -1,0 +1,179 @@
+##############################################################################################
+# KI > Supervised Learning > Künstliche Neuronale Netze
+##############################################################################################
+
+# lade Pakete
+
+using Flux, Images, MLDatasets, Plots, ProgressMeter
+
+# brauchen spezielle Funktionen aus Flux
+
+using Flux: crossentropy, onecold, onehotbatch, train!
+
+# brauchen Paket aus dem Standumfang von Julia
+
+using LinearAlgebra, Random, Statistics
+
+# setzen Zufallsgrundwert (Random seed), um Beispiel reproduzierbar zu machen
+
+Random.seed!(1)
+
+################################################################################################
+# Laden des Datensatzes
+################################################################################################
+
+X_train_raw, Y_train_raw = MLDatasets.MNIST(split=:train)[:];
+
+################################################################################################
+# Laden des Testdatensatzes
+################################################################################################
+
+X_test_raw, Y_test_raw = MLDatasets.MNIST(split=:test)[:];
+
+################################################################################################
+# Wir haben 60.000 Trainingsbilder mit 28x28-Pixel
+################################################################################################
+size(X_train_raw)
+
+################################################################################################
+# Wie wird das Bild dargestellt? --> Zahlen zwischen 0 und 1
+################################################################################################################################
+index = 1;
+X_train_raw[:,:,index]
+scatter(X_train_raw[:,:,index]',legend=false)
+
+################################################################################################
+# ein Bild sieht folgendermaßen aus
+################################################################################################
+img = X_train_raw[:,:,index];
+colorview(Gray,img')
+
+################################################################################################
+# Welche Zahl ist das? -> Label für Bild, d.h. Zahl, die auf Bild gezeigt wird
+################################################################################################
+Y_train_raw[index]
+
+################################################################################################
+# Testdatensatze --> 10.000 Testbilder
+################################################################################################
+size(X_test_raw)
+
+test_img = X_test_raw[:,:,1];
+colorview(Gray,test_img')
+
+Y_test_raw[1]
+
+################################################################################################
+# Vorbereitungsschritte
+################################################################################################
+# jedes Bild (Matrix) wird in einen Vektor transformiert
+x_train = Flux.flatten(X_train_raw)
+x_test = Flux.flatten(X_test_raw)
+
+# aus Speichergründen führt man Label ein one-hot-Encoding ein
+y_train = onehotbatch(Y_train_raw,0:9)
+
+y_test = onehotbatch(Y_test_raw,0:9)
+
+################################################################################################
+# Flux ist ein Deeplearning Toolkit
+################################################################################################
+model = Chain(
+    Dense(28 * 28, 32, relu),
+    Dense(32, 10),
+    softmax
+)
+
+################################################################################################
+# Definition der Verlust-Funktion
+################################################################################################
+
+loss(x,y) = crossentropy(model(x),y)
+
+################################################################################################
+# Initialisierung der Parameter
+################################################################################################
+
+ps = Flux.params(model)
+
+################################################################################################
+# Wahl des Optimierungsansatzes
+# ADAM = adaptive moment estimation
+################################################################################################
+learning_rate = 0.01
+opt = ADAM(learning_rate)
+
+################################################################################################
+# Trainieren des Modelles
+################################################################################################
+loss_history = []
+
+epochs = 500
+
+#@showprogress 
+for epoch in 1:epochs
+    # trainieren des Modelles
+    train!(loss,ps,[(x_train,y_train)], opt)
+    # Ausgabe 
+    train_loss = loss(x_train,y_train)
+    push!(loss_history, train_loss)
+    print("Epoche= $epoch : Verlust = $train_loss")
+end
+
+################################################################################################
+# Vorhersage mittels des Modelles
+################################################################################################
+
+y_predicted_raw = model(x_test)
+
+################################################################################################
+# Konvertiere Index-Zahlen in Label
+################################################################################################
+y_predicted = onecold(y_predicted_raw).-1
+
+################################################################################################
+# Vergleiche vorgesagte Label mit Testdatensatzen Label
+################################################################################################
+result = y_predicted .== Y_test_raw
+
+################################################################################################
+# Berechne der Durchschnitt der korrekt vorhergesagten Label
+################################################################################################
+mean(result)
+
+################################################################################################
+# 
+
+index = collect(1:length(Y_test_raw))
+
+checkdisplay = [index y_predicted Y_test_raw result]
+
+vscodedisplay(checkdisplay)
+
+################################################################################################
+# Falsch erkannt ist zum Beispiel Eintrag 9
+################################################################################################
+index_falsch_erkannt = 9
+
+img_falsch_erkannt = X_test_raw[:,:,index_falsch_erkannt];
+
+colorview(Gray,img_falsch_erkannt')
+# Laut Datensatz ist es eine
+Y_test_raw[index_falsch_erkannt]
+
+# laut Model ist es eine
+y_predicted[index_falsch_erkannt]
+
+################################################################################################
+# Verlust-Kurve
+################################################################################################
+gr(size = (600,600))
+
+p_l_curve = plot(1:epochs, loss_history,
+    xlabel = "Epochen",
+    ylabel = "Verlust",
+    title = "Lernkurve",
+    legend = false,
+    color = :blue,
+    linewidth = 2
+)
