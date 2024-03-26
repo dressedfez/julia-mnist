@@ -15,3 +15,5 @@ des Kanals [`doggo dot jl`](https://www.youtube.com/@doggodotjl) entnommen. Die 
 [Tutorial Series 05 | Julia Machine Learning for Beginners](https://youtube.com/playlist?list=PLhQ2JMBcfAsi76O13sJzk4LXA_mu5sd9E&si=Yot1o4-cr5GXFEi7)
 
 ist sehenswert.
+
+Meine Vortragsfolien sind hier zu finden: [Einführung in KI](Einfuehrung_Kuenstliche_Intelligenz.pdf).
